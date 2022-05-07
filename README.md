@@ -6,4 +6,4 @@ never finished it.
 
 my goal was to took all internal DLL 
 
-And add them to big library.
+And add them to big DLL libary.
