@@ -1,0 +1,115 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{86F08606-9557-49EF-80CE-5A8C407CC8DA}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>MSDN</RootNamespace>
+    <AssemblyName>MSDN</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <PlatformTarget>x86</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <PlatformTarget>x86</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Accessibility">
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Management" />
+    <Reference Include="System.ServiceProcess" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="MSDN\Interface.cs" />
+    <Compile Include="MSDN\Api.cs" />
+    <Compile Include="MSDN\Delegate.cs" />
+    <Compile Include="MSDN\Enum.cs" />
+    <Compile Include="MSDN\Extension.cs" />
+    <Compile Include="MSDN\Error.cs" />
+    <Compile Include="MSDN\SafeHandle.cs" />
+    <Compile Include="MSDN\Wrapper.cs" />
+    <Compile Include="MSDN\Struct.cs" />
+    <Compile Include="MSDN\ToDo.cs" />
+    <Content Include="NTDLL\ntehx64.h" />
+    <Content Include="NTDLL\ntnative.h" />
+    <Content Include="NTDLL\nt\ntcsr.h" />
+    <Content Include="NTDLL\nt\ntdbg.h" />
+    <Content Include="NTDLL\nt\ntdbgkd.h" />
+    <Content Include="NTDLL\nt\ntefi.h" />
+    <Content Include="NTDLL\nt\ntehx64.h" />
+    <Content Include="NTDLL\nt\ntfile.h" />
+    <Content Include="NTDLL\nt\ntgdi.h" />
+    <Content Include="NTDLL\nt\ntgditypes.h" />
+    <Content Include="NTDLL\nt\ntjob.h" />
+    <Content Include="NTDLL\nt\ntkernel.h" />
+    <Content Include="NTDLL\nt\ntldr.h" />
+    <Content Include="NTDLL\nt\ntmemory.h" />
+    <Content Include="NTDLL\nt\ntmisc.h" />
+    <Content Include="NTDLL\nt\ntnative.h" />
+    <Content Include="NTDLL\nt\ntobject.h" />
+    <Content Include="NTDLL\nt\ntport.h" />
+    <Content Include="NTDLL\nt\ntpower.h" />
+    <Content Include="NTDLL\nt\ntprocess.h" />
+    <Content Include="NTDLL\nt\ntprofile.h" />
+    <Content Include="NTDLL\nt\ntregistry.h" />
+    <Content Include="NTDLL\nt\ntrtl.h" />
+    <Content Include="NTDLL\nt\ntsection.h" />
+    <Content Include="NTDLL\nt\ntsecurity.h" />
+    <Content Include="NTDLL\nt\ntstartup.h" />
+    <Content Include="NTDLL\nt\ntsynchronization.h" />
+    <Content Include="NTDLL\nt\ntsystem.h" />
+    <Content Include="NTDLL\nt\ntthread.h" />
+    <Content Include="NTDLL\nt\nttime.h" />
+    <Content Include="NTDLL\nt\nttm.h" />
+    <Content Include="NTDLL\nt\nttoken.h" />
+    <Content Include="NTDLL\nt\nttypes.h" />
+    <Content Include="NTDLL\nt\ntuser.h" />
+    <Content Include="NTDLL\nt\ntusertypes.h" />
+    <Content Include="NTDLL\nt\ntvdm.h" />
+    <Content Include="Samples.txt" />
+    <Content Include="Links.txt" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

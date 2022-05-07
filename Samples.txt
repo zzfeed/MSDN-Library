@@ -1,0 +1,1274 @@
+﻿
+// ------ Window
+
+/*
+private static void Main()
+{
+    var ppvObject = oleacc.AccessibleObjectFromWindow(
+        user32.FindWindow("notepad", null),
+        AccessibleObjectID.WINDOW,
+        typeof(IAccessible).GUID);
+    Console.WriteLine("Name :: {0}", ppvObject.accName);
+    Console.WriteLine("Description :: {0}", ppvObject.accDescription);
+    //Console.WriteLine("DefaultAction :: {0}", ppvObject.accDefaultAction);
+
+    int pcObtained;
+    var rgvarChildren = new object[ppvObject.accChildCount];
+    oleacc.AccessibleChildren(
+        ppvObject, 0, rgvarChildren.Length, rgvarChildren, out pcObtained);
+
+    for (var i = 0; i < pcObtained; i++)
+    {
+        IAccessible selected;
+        if (rgvarChildren[i] is IAccessible)
+        {
+            selected = (IAccessible)rgvarChildren[i];
+            Console.WriteLine("Child :: {0}", i);
+            Console.WriteLine("Name :: {0}", selected.accName);
+            Console.WriteLine("Description :: {0}", selected.accDescription);
+            //Console.WriteLine("DefaultAction :: {0}", selected.accDefaultAction);
+        }
+        else if (rgvarChildren[i] is Int32)
+        {
+            selected = (IAccessible)ppvObject.accChild[rgvarChildren[i]];
+            Console.WriteLine("Name :: {0}", selected.accName);
+            Console.WriteLine("Description :: {0}", selected.accDescription);
+            //Console.WriteLine("DefaultAction :: {0}", selected.accDefaultAction);
+        }
+    }
+
+    var idProcess = Helper.EnumProcess.Process()
+        .First(item => item.szExeFile.Contains("notepad.exe")).th32ProcessID;
+    var lpfnWinEventProc = new WinEventProc(LpfnWinEventProc);
+    var lpfnWinEventProcPtr = Marshal.GetFunctionPointerForDelegate(lpfnWinEventProc);
+    gch = GCHandle.Alloc(lpfnWinEventProcPtr);
+    oleacc.SetWinEventHook(
+        AccessibleEventType.EventMin,
+        AccessibleEventType.EventMax,
+        IntPtr.Zero,
+        lpfnWinEventProc,
+        idProcess, 0,
+        WinEeventFlags.OutOfContext);
+
+    //Console.Clear();
+    Console.WriteLine();
+    Console.WriteLine("[- All OK -]");
+    Console.Read();
+}
+
+private static GCHandle gch;
+private static void LpfnWinEventProc(
+    IntPtr hWinEventHook,
+    AccessibleEventType eventType,
+    SafeWindowHandle hwnd,
+    uint idObject,
+    uint idChild,
+    uint dwEventThread,
+    uint dwmsEventTime)
+    {
+        object pvarChild;
+        IAccessible ppacc;
+        if (oleacc.AccessibleObjectFromEvent(
+            hwnd, idObject, idChild, out ppacc, out pvarChild) != 0)
+            return;
+
+        Console.WriteLine(
+            string.Format(
+            "AccessibleEventTyp :: {0}\nWindowHandle :: {1}\nName :: {2}\n",
+            eventType, hwnd, ppacc.accName));
+    }
+}
+ */
+
+/*
+// Window Notifications
+// http://msdn.microsoft.com/en-us/library/windows/desktop/ff468922(v=vs.85).aspx
+
+// Mouse Input Notifications
+// http://msdn.microsoft.com/en-us/library/windows/desktop/ff468877(v=vs.85).aspx
+
+// Keyboard Input Notifications
+// http://msdn.microsoft.com/en-us/library/windows/desktop/ff468861(v=vs.85).aspx
+
+protected override void WndProc(ref Message m)
+{
+    switch (m.Msg)
+    {
+        // WM_CREATE
+        case 0x0001:
+            break;
+
+        // WM_STYLECHANGING
+        case 0x7c:
+            switch ((int)m.WParam)
+            {
+                // GWL_EXSTYLE
+                case -0x14:
+                    unsafe
+                    {
+                        var style = (int*)m.LParam;
+                        var oldStyle = (WindowStyle)style[0];
+                        var newStyle = (WindowStyle)style[1];
+
+                        newStyle &= ~
+                            (WindowStyle.THICKFRAME |
+                            WindowStyle.DLGFRAME);
+
+                        newStyle = 0 &
+                            (WindowStyle.TABSTOP |
+                            WindowStyle.CLIPCHILDREN);
+
+
+                        style[1] = (int)newStyle;
+                        m.Result = IntPtr.Zero;
+                        return;
+                    }
+                    break;
+
+                // GWL_STYLE
+                case -0x10:
+                    unsafe
+                    {
+                        var style = (int*)m.LParam;
+                        var oldStyle = (WindowStyle)style[0];
+                        var newStyle = (WindowStyle)style[1];
+
+                        newStyle &= ~
+                            (WindowStyle.CAPTION |
+                                WindowStyle.SYSMENU |
+                                WindowStyle.GROUP);
+
+                        newStyle = 0 &
+                            (WindowStyle.TABSTOP |
+                            WindowStyle.CLIPCHILDREN);
+
+                        style[1] = (int)newStyle;
+                        m.Result = IntPtr.Zero;
+                        return;
+                    }
+                    break;
+            }
+            break;
+
+        // WM_NCHITTEST
+        case 0x0084:
+            // Drag the client area
+            base.WndProc(ref m);
+            if (m.Result == (IntPtr)0x1)    // HTCLIENT
+            {
+                m.Result = (IntPtr)0x2;     // HTCAPTION
+                return;
+            }
+            break;
+
+        // WM_MOVING
+        case 0x0216:
+            unsafe
+            {
+                var rect = (int*)m.LParam;
+                rect[0] += 2;
+                rect[1] += 2;
+                //rect[2] -= 2;
+                //rect[3] -= 2;
+                //m.Result = (IntPtr)1;
+            }
+            break;
+
+        // WM_NCDESTROY
+        case 0x0082:
+        // WM_DESTROY
+        case 0x0002:
+        // WM_CLOSE
+        case 0x0010:
+        // WM_QUIT
+        case 0x0012:
+            // Disable Close / Alt F4
+            m.Result = IntPtr.Zero;
+            return;
+            break;
+    }
+
+    base.WndProc(ref m);
+}
+ */
+
+// ------ Process
+
+/*
+unsafe
+{
+    uint returnLength;
+    bool processInformation;
+    var processID =
+        EnumProcess.Process().First(obj => obj.szExeFile == "smss.exe").th32ProcessID;
+    var hProcess = kernel32.OpenProcess(
+        ProcessAccessFlags.All, false, processID);
+
+    // get Result
+    ntdll.NtQueryInformationProcess(
+        hProcess,
+        process_information_class.ProcessBreakOnTermination,
+        (IntPtr)(&processInformation),
+        (uint)Marshal.SizeOf(processInformation),
+        out returnLength);
+
+    // reverse Result
+    processInformation = !processInformation;
+    ntdll.NtSetInformationProcess(
+        hProcess,
+        process_information_class.ProcessBreakOnTermination,
+        (IntPtr)(&processInformation),
+        (uint)Marshal.SizeOf(processInformation));
+}
+ */
+
+/*
+unsafe
+{
+    NtStatus status;
+    uint returnLength;
+                
+    var hprocess = SafeProcessHandle.CurrentProcess;
+    Privileges.Take(hprocess, true, Privileges.Types.SE_DEBUG);
+
+    uint pId = ProcessHelper.EnumProcess()
+        .First(proc => proc.szExeFile == "explorer.exe")
+        .th32ProcessID;
+    var newProc = kernel32.OpenProcess(
+        ProcessAccessFlags.VMRead | ProcessAccessFlags.QueryInformation,
+        false, pId);
+
+    var infoClass = process_information_class.ProcessBasicInformation;
+    var processInformation = process_information.CreateHandle(infoClass, out returnLength);
+
+    status = ntdll.NtQueryInformationProcess(
+        newProc, infoClass,
+        (IntPtr)processInformation,
+        returnLength,
+        out returnLength);
+
+    if (status == NtStatus.UNSUCCESSFUL)
+    {
+        process_information.FreeHandle(processInformation);
+        throw new System.ComponentModel.Win32Exception(
+            Marshal.GetLastWin32Error());
+    }
+
+    if (status == NtStatus.INFO_LENGTH_MISMATCH)
+    {
+        process_information.FreeHandle(processInformation);
+        processInformation = process_information.CreateHandle(returnLength);
+
+        status = ntdll.NtQueryInformationProcess(
+            newProc, infoClass,
+            (IntPtr)processInformation,
+            returnLength,
+            out returnLength);
+    }
+
+    if (status == NtStatus.SUCCESS)
+    {
+        // For current Process
+
+        /*
+            var eEnvironment = processInformation->ProcessBasicInformation.PebBaseAddress->ProcessParameters->Environment;
+            Console.WriteLine(eEnvironment.Strings.Length);
+
+            // it can be done with WMI 'select * from Win32_Process'
+            var eImagePath = processInformation->ProcessBasicInformation.PebBaseAddress->ProcessParameters->ImagePathName;
+            Console.WriteLine("image File :: {0}", eImagePath);
+
+            // get / redirect [i/u]nput
+            var cn = MSDN.Wrapper.Console.Create(
+                processInformation->ProcessBasicInformation.PebBaseAddress->ProcessParameters->StdInputHandle,
+                processInformation->ProcessBasicInformation.PebBaseAddress->ProcessParameters->StdOutputHandle,
+                processInformation->ProcessBasicInformation.PebBaseAddress->ProcessParameters->StdErrorHandle);
+            cn.WriteLine("Press somthing and press anter after ..........");
+            var res = cn.ReadLine();
+            cn.WriteLine(string.Format("Result :: {0}", res));
+
+            var ePeb = processInformation->ProcessBasicInformation.PebBaseAddress;
+            ePeb->BeingDebugged = 0;
+            Console.WriteLine("Debugger Present ? {0}",
+                kernel32.IsDebuggerPresent() ? "Yes" : "No");
+
+            ePeb->BeingDebugged = 1;
+            Console.WriteLine("Debugger Present ? {0}",
+                kernel32.IsDebuggerPresent() ? "Yes" : "No");
+            */
+
+        // For Other Process
+
+        // Not works .... [maybe bacause i have 64 bit ?]
+        //IntPtr handle;
+        //var info = processInformation->ProcessBasicInformation;
+        //ObjectHelper.Duplicate(pId, (IntPtr)info.PebBaseAddress, out handle, 0);
+        //processInformation = (process_information*)handle;
+
+        // Other methood
+
+        if ((int)processInformation->ProcessBasicInformation.PebBaseAddress != 0x00000)
+        {
+            PEB peb;
+            RTL_USER_PROCESS_PARAMETERS rtlUserProcessParameters;
+            uint lpNumberOfBytesRead;
+
+            // Read PEB
+            if (!kernel32.ReadProcessMemory(
+                newProc,
+                (IntPtr)processInformation->ProcessBasicInformation.PebBaseAddress,
+                (IntPtr)(&peb),
+                (uint)sizeof(PEB),
+                out lpNumberOfBytesRead))
+                return;
+
+            // Read Paramaters 
+            if (!kernel32.ReadProcessMemory(
+                newProc,
+                (IntPtr)peb.ProcessParameters,
+                (IntPtr)(&rtlUserProcessParameters),
+                (uint)sizeof(RTL_USER_PROCESS_PARAMETERS),
+                out lpNumberOfBytesRead))
+                return;
+
+            // it can be done with WMI 'select * from Win32_Process'
+            var imageName = rtlUserProcessParameters.ImagePathName.FromProcess(newProc);
+            Console.WriteLine("image Name :: {0}", imageName);
+
+            // it can be done with WMI 'select * from Win32_Process'
+            var cmdLine = rtlUserProcessParameters.CommandLine.FromProcess(newProc);
+            Console.WriteLine("Command Line :: {0}", cmdLine);
+
+            var env = rtlUserProcessParameters.Environment.StringsFromProcess(newProc);
+            Console.WriteLine("Envirment :: {0}", env);
+        }
+    }
+
+    // free the garbage
+    newProc.Release();
+    hprocess.Release();
+    process_information.FreeHandle(processInformation);
+}
+ */
+
+/*
+unsafe
+{
+    var cb = Console.Current;
+    PROCESS_INFORMATION lpProcessInformation;
+    SafeConsoleHandle stdInput, stdOutput, stdError;
+    const string lpCommandLine = @"cmd /c echo Press Somthing Plz .... && pause && ping 1.1.1.1 -n 1 -w 5000 > nul";
+
+    var attributes = new SECURITY_ATTRIBUTES()
+    {
+        bInheritHandle = true,
+        nLength = (uint)sizeof(SECURITY_ATTRIBUTES),
+        lpSecurityDescriptor = new SafeSecurityDescriptorHandle(0),
+    };
+
+    var lpStartupInfo = new STARTUPINFO
+    {
+        cb = sizeof(STARTUPINFO),
+        dwFlags = STARTUPINFO_FLAGS.USE_STD_HANDLES | STARTUPINFO_FLAGS.USE_SHOW_WINDOW,
+        wShowWindow = ShowWindowCommandShort.Hide
+    };
+
+    {
+        kernel32.CreatePipe(out lpStartupInfo.hStdInput, out stdInput, (IntPtr)(&attributes), 0);
+        kernel32.CreatePipe(out stdOutput, out lpStartupInfo.hStdOutput, (IntPtr)(&attributes), 0);
+        kernel32.CreatePipe(out stdError, out lpStartupInfo.hStdError, (IntPtr)(&attributes), 0);
+
+        //
+        // Ensure that inherits disable ...
+        //
+
+        var tmpPtr = IntPtr.Zero;
+        var hProc = SafeProcessHandle.CurrentProcess;
+
+        kernel32.SetHandleInformation(stdInput.stdHandle, HandleFlag.Inherit, HandleFlag.Null);
+        kernel32.SetHandleInformation(stdOutput.stdHandle, HandleFlag.Inherit, HandleFlag.Null);
+        kernel32.SetHandleInformation(stdError.stdHandle, HandleFlag.Inherit, HandleFlag.Null);
+
+        //kernel32.DuplicateHandle(hProc, stdInput.stdHandle, hProc, out tmpPtr,
+        //    ProcessAccessFlags.All, false, DUPLICATE.DUPLICATE_SAME_ACCESS);
+        //stdInput.stdHandle.Close();
+        //stdInput.stdHandle = tmpPtr;
+
+        //kernel32.DuplicateHandle(hProc, stdOutput.stdHandle, hProc, out tmpPtr,
+        //    ProcessAccessFlags.All, false, DUPLICATE.DUPLICATE_SAME_ACCESS);
+        //stdOutput.stdHandle.Close();
+        //stdOutput.stdHandle = tmpPtr;
+
+        //kernel32.DuplicateHandle(hProc, stdError.stdHandle, hProc, out tmpPtr,
+        //    ProcessAccessFlags.All, false, DUPLICATE.DUPLICATE_SAME_ACCESS);
+        //stdError.stdHandle.Close();
+        //stdError.stdHandle = tmpPtr;
+    }
+
+    kernel32.CreateProcess(
+        null, lpCommandLine,
+        IntPtr.Zero, IntPtr.Zero,
+        true,
+        CreationFlags.CREATE_NEW_CONSOLE,
+        new Environment(0),
+        null, ref lpStartupInfo,
+        out lpProcessInformation);
+
+    {
+        uint lpRead;
+        byte[] lpBuffer;
+
+        lpBuffer = new byte[1024];
+        cb.WriteLine("[Read data from Buffer]");
+        while ((lpRead = stdOutput.Read(ref lpBuffer, 1024)) > 0)
+        {
+            cb.WriteLine(Encoding.Default.GetString(lpBuffer, 0, (int)lpRead));
+            if (lpRead < lpBuffer.Length)
+                break;
+        }
+
+        cb.WriteLine("[Send data to Buffer]"); 
+        lpBuffer = Encoding.Default.GetBytes("[some key to resume from Pause Command]");
+        stdInput.Write(lpBuffer, (uint)lpBuffer.Length);
+
+        lpProcessInformation.hProcess.Wait(
+            WaitForSingleObjectFlags.Infinite);
+
+        lpBuffer = new byte[1024];
+        cb.WriteLine("[Read data from Buffer]");
+        while ((lpRead = stdOutput.Read(ref lpBuffer, 1024)) > 0)
+        {
+            cb.WriteLine(Encoding.Default.GetString(lpBuffer, 0, (int)lpRead));
+            if (lpRead < lpBuffer.Length)
+                break;
+        }
+
+        cb.WriteLine("[No more Data]");
+        cb.ReadKey();
+    }
+}
+ */
+
+/*
+unsafe
+{
+    uint length;
+    const uint maxLength = 1024;
+    var cb = MSDN.Wrapper.Console.Current;
+    var build = new StringBuilder((int)maxLength);
+    var hprocess = SafeProcessHandle.CurrentProcess;
+
+    length = maxLength;
+    build.EnsureCapacity((int)length);
+    kernel32.QueryFullProcessImageName(hprocess, 0, build, ref length);
+    cb.WriteLine();
+    cb.WriteLine("callled from QueryFullProcessImageName");
+    cb.WriteLine(build);
+
+    length = maxLength;
+    psapi.GetModuleFileNameEx(hprocess, IntPtr.Zero, build, length);
+    cb.WriteLine();
+    cb.WriteLine("callled from GetModuleFileNameEx");
+    cb.WriteLine(build);
+
+    length = maxLength;
+    build.EnsureCapacity((int)length);
+    psapi.GetProcessImageFileName(hprocess, build, length);
+    cb.WriteLine();
+    cb.WriteLine("callled from GetProcessImageFileName");
+    cb.WriteLine(build);
+
+    {
+        NtStatus status;
+        uint returnLength;
+        var infoClass = process_information_class.ProcessBasicInformation;
+        var processInformation = process_information.CreateHandle(infoClass, out returnLength);
+
+        status = ntdll.NtQueryInformationProcess(
+            hprocess, infoClass,
+            (IntPtr)processInformation,
+            returnLength,
+            out returnLength);
+
+        if (status == NtStatus.UNSUCCESSFUL)
+        {
+            process_information.FreeHandle(processInformation);
+            throw new System.ComponentModel.Win32Exception(
+                Marshal.GetLastWin32Error());
+        }
+
+        if (status == NtStatus.INFO_LENGTH_MISMATCH)
+        {
+            process_information.FreeHandle(processInformation);
+            processInformation = process_information.CreateHandle(returnLength);
+
+            status = ntdll.NtQueryInformationProcess(
+                hprocess, infoClass,
+                (IntPtr)processInformation,
+                returnLength,
+                out returnLength);
+        }
+
+        if (status == NtStatus.SUCCESS)
+        {
+            cb.WriteLine();
+            cb.WriteLine("callled from NtQueryInformationProcess :: ProcessBasicInformation");
+            cb.WriteLine(processInformation->ProcessBasicInformation.PebBaseAddress->ProcessParameters->ImagePathName.ToString());
+
+            int pNumArgs;
+            var cArgs = shell32.CommandLineToArgv(processInformation->ProcessBasicInformation.PebBaseAddress->ProcessParameters->CommandLine.ToString(), out pNumArgs);
+            cb.WriteLine();
+            cb.WriteLine("callled from NtQueryInformationProcess :: ProcessBasicInformation");
+            cb.WriteLine(cArgs[0].ToUnicodeStr());
+        }
+
+        // free the garbage
+        process_information.FreeHandle(processInformation);
+    }
+
+    {
+        NtStatus status;
+        uint returnLength;
+        var infoClass = process_information_class.ProcessImageFileName;
+        var processInformation = process_information.CreateHandle(infoClass, out returnLength);
+
+        status = ntdll.NtQueryInformationProcess(
+            hprocess, infoClass,
+            (IntPtr)processInformation,
+            returnLength,
+            out returnLength);
+
+        if (status == NtStatus.UNSUCCESSFUL)
+        {
+            process_information.FreeHandle(processInformation);
+            throw new System.ComponentModel.Win32Exception(
+                Marshal.GetLastWin32Error());
+        }
+
+        if (status == NtStatus.INFO_LENGTH_MISMATCH)
+        {
+            process_information.FreeHandle(processInformation);
+            processInformation = process_information.CreateHandle(returnLength);
+
+            status = ntdll.NtQueryInformationProcess(
+                hprocess, infoClass,
+                (IntPtr)processInformation,
+                returnLength,
+                out returnLength);
+        }
+
+        if (status == NtStatus.SUCCESS)
+        {
+            cb.WriteLine();
+            cb.WriteLine("callled from NtQueryInformationProcess :: ProcessImageFileName");
+            cb.WriteLine(processInformation->ProcessImageFileName);
+        }
+
+        // free the garbage
+        process_information.FreeHandle(processInformation);
+    }
+}
+ */
+
+ // ------ Thread
+
+/*
+ // Create TP
+var tpPool = kernel32.CreateThreadpool(IntPtr.Zero);
+tpPool.MinimumThread = 10;
+tpPool.MaximumThread = 1;
+
+// Create Group
+var tpGroup = kernel32.CreateThreadpoolCleanupGroup();
+
+// Create Environment
+var tpEnv = new SafeThreadpoolEnvironment();
+tpEnv.Initialize();
+tpEnv.Pool = tpPool;
+tpEnv.CleanUpGroup = tpGroup;
+tpEnv.CleanupGroupCancelCallback = CleanupGroupCancelCallback;
+
+// Do Some Test
+ // Event
+var evt = kernel32.CreateEvent(IntPtr.Zero, false, false, null);
+//evt.Reset();
+evt.Set();
+// Work
+var tpWork = tpEnv.CreateWork(WorkCallback, IntPtr.Zero);
+tpWork.Submit();
+// Wait       
+var tpWait = tpEnv.CreateWait(Pfnwa, IntPtr.Zero);
+tpWait.Set(evt.stdHandle);
+
+// TEST IT
+tpGroup.WaitAndRelease();
+tpGroup.Close();
+
+Console.WriteLine("[ --- END --- ]");
+Console.Read();
+ */
+
+/*
+//
+// RegisterWaitForSingleObject
+//
+
+Console.WriteLine("Define Event");
+var hObject = kernel32.CreateEvent(
+    IntPtr.Zero, true, true, null);
+
+Console.WriteLine("Reset Event");
+hObject.Reset();
+
+Console.WriteLine("call RegisterWaitForSingleObject");
+var phNewWaitObject = new SafeWaitHandle[1];
+kernel32.RegisterWaitForSingleObject(
+    out phNewWaitObject[0],
+    hObject.stdHandle,
+    (parameter, fired) =>
+    {
+        kernel32.Sleep(2000);
+        Console.WriteLine(
+            parameter.ToUnicodeStr());
+        parameter.Free();
+        phNewWaitObject[0].UnRegister();
+    },
+    Marshal.StringToHGlobalUni("inside RegisterWaitForSingleObject Callback"),
+    TimeOut.Infinite,
+    tpExecuteFlags.ExecuteOnlyOnce);
+
+// by set event, callback will run
+Console.WriteLine("Set Event");
+hObject.Set();
+
+//
+// QueueUserWorkItem
+//
+
+Console.WriteLine("call QueueUserWorkItem");
+kernel32.QueueUserWorkItem(
+    parameter =>
+    {
+        kernel32.Sleep(2000);
+        Console.WriteLine(
+            parameter.ToUnicodeStr());
+        parameter.Free();
+        return 0;
+    },
+    Marshal.StringToHGlobalUni("inside QueueUserWorkItem Callback"),
+    tpExecuteFlags.ExecuteOnlyOnce);
+
+//
+// CreateThread
+//
+
+uint threadId;
+kernel32.CreateThread(
+    IntPtr.Zero, 0,
+    parameter =>
+    {
+        kernel32.Sleep(2000);
+        Console.WriteLine(
+            parameter.ToUnicodeStr());
+        parameter.Free();
+        return 0;
+    },
+    Marshal.StringToHGlobalUni("inside CreateThread Callback"),
+    CreateThreadFlags.Default,
+    out threadId);
+
+Console.WriteLine("Wait for Input");
+Console.Read();
+ */
+
+/*
+var lpStartupInfo = new STARTUPINFO();
+PROCESS_INFORMATION lpProcessInformation;
+kernel32.CreateProcess(
+    null, @"notepad", IntPtr.Zero, IntPtr.Zero,
+    false, CreationFlags.CREATE_NEW_PROCESS,
+    Environment.Instance(), null, ref lpStartupInfo, out lpProcessInformation);
+kernel32.Sleep(1000);
+
+//
+// SomeDll.dll
+//
+
+//#include <Windows.h>
+//BOOL APIENTRY DllMain( HMODULE hModule,
+//                       DWORD  ul_reason_for_call,
+//                       LPVOID lpReserved
+//                     )
+//{
+//    switch (ul_reason_for_call)
+//    {
+//    case DLL_PROCESS_ATTACH:
+//        MessageBox(NULL, L"DLL_PROCESS_ATTACH", NULL, NULL);
+//        break;
+
+//        case DLL_PROCESS_DETACH:
+//        MessageBox(NULL, L"DLL_PROCESS_DETACH", NULL, NULL);
+//        break;
+
+//    case DLL_THREAD_ATTACH:
+//        MessageBox(NULL, L"DLL_THREAD_ATTACH", NULL, NULL);
+//        break;
+
+//    case DLL_THREAD_DETACH:
+//        MessageBox(NULL, L"DLL_THREAD_DETACH", NULL, NULL);
+//        break;
+//    }
+
+//    return TRUE;
+//}
+
+{
+    // global Properties
+    uint result;
+    const string sDll = "Kernel32";
+    const string sFunc = "LoadLibraryA";
+    var sData = Encoding.ASCII.GetBytes(@"{PATH}\SomeDll.dll");
+    var sHandle = lpProcessInformation.hProcess;
+
+    // set Function
+    var func = kernel32.GetProcAddress(kernel32.LoadLibrary(sDll), sFunc);
+
+    // set Params
+    var Params = kernel32.VirtualAllocEx(sHandle, IntPtr.Zero, (uint)sData.Length,
+        AllocationType.Commit | AllocationType.Reserve, MemoryProtection.ExecuteReadWrite);
+
+    fixed (byte* sDataPtr = &sData[0])
+        kernel32.WriteProcessMemory(sHandle, Params, (IntPtr)sDataPtr, (uint)sData.Length, out result);
+
+    // create Remote thread
+    kernel32.CreateRemoteThread(
+        sHandle, IntPtr.Zero, 0, func, Params, CreateThreadFlags.Default, out result);
+}
+
+{
+    // global Properties
+    uint result;
+    const string sDll = "Kernel32";
+    const string sFunc = "ExitProcess";
+    var sData = (uint)1;
+    var sHandle = lpProcessInformation.hProcess;
+
+    // set Function
+    var func = kernel32.GetProcAddress(kernel32.LoadLibrary(sDll), sFunc);
+
+    // set Params
+    var Params = kernel32.VirtualAllocEx(sHandle, IntPtr.Zero, (uint)Marshal.SizeOf(sData),
+            AllocationType.Commit | AllocationType.Reserve, MemoryProtection.ExecuteReadWrite);
+    kernel32.WriteProcessMemory(sHandle, Params, (IntPtr)(&sData), (uint)Marshal.SizeOf(sData), out result);
+
+    // create Remote thread
+    kernel32.CreateRemoteThread(
+        sHandle, IntPtr.Zero, 0, func, Params, CreateThreadFlags.Default, out result);
+}
+
+{
+    // global Properties
+    uint result;
+    const string sDll = "Kernel32";
+    const string sFunc = "CloseHandle";
+    var sData = IntPtr.Zero;
+    var sHandle = lpProcessInformation.hProcess;
+
+    // set Function
+    var func = kernel32.GetProcAddress(kernel32.LoadLibrary(sDll), sFunc);
+
+    // set Params
+    var Params = kernel32.VirtualAllocEx(sHandle, IntPtr.Zero, (uint)Marshal.SizeOf(sData),
+            AllocationType.Commit | AllocationType.Reserve, MemoryProtection.ExecuteReadWrite);
+    kernel32.WriteProcessMemory(sHandle, Params, (IntPtr)(&sData), (uint)Marshal.SizeOf(sData), out result);
+
+    // create Remote thread
+    kernel32.CreateRemoteThread(
+        sHandle, IntPtr.Zero, 0, func, Params, CreateThreadFlags.Default, out result);
+}
+ */
+
+// ------ Account
+
+/*
+Win32Error msg;
+USER_INFO* uInfo;
+string uName = "test", uPass = "123456";
+DWORD parmErr, entriesread, totalentries;
+
+//
+// Create Account
+//
+
+uInfo = (USER_INFO*)Marshal.AllocHGlobal(USER_INFO.Size);
+uInfo->Info1.name = Marshal.StringToHGlobalUni(uName);
+uInfo->Info1.password = IntPtr.Zero;
+uInfo->Info1.password_age = 0;
+uInfo->Info1.priv = UserPriv.User;
+uInfo->Info1.home_dir = IntPtr.Zero;
+uInfo->Info1.comment = IntPtr.Zero;
+uInfo->Info1.flags = UserFlags.SCRIPT | UserFlags.PASSWD_NOTREQD | UserFlags.DONT_EXPIRE_PASSWD | UserFlags.NORMAL_ACCOUNT;
+uInfo->Info1.script_path = IntPtr.Zero;
+
+msg = netapi32.NetUserAdd(
+    null, UserLevelAdd.Info1, uInfo, out parmErr);
+if (msg != Win32Error.SUCCESS)
+    return;
+
+//
+// Get Account Info
+//
+
+msg = netapi32.NetUserGetInfo(null, uName, UserLevelGet.Info1, out uInfo);
+if (msg != Win32Error.SUCCESS)
+    return;
+
+//
+// Set Account Info
+//
+
+uInfo->Info1.password = Marshal.StringToHGlobalUni(uPass);
+msg = netapi32.NetUserSetInfo(
+    null, uName, UserLevelSet.Info1, uInfo, out parmErr);
+if (msg != Win32Error.SUCCESS)
+    return;
+
+//
+// Set Group
+//
+
+var buf = (LOCALGROUP_MEMBERS_INFO*)Marshal.AllocHGlobal(LOCALGROUP_MEMBERS_INFO.Size);
+buf->Member0.sid = new SafeSidhandle(uName);
+
+msg = netapi32.NetLocalGroupAddMembers(
+    null, "Users", UserLocalGroupMemberAdd.Member0,
+    buf, 1);
+if (msg != Win32Error.SUCCESS)
+    return;
+
+//
+// Delete Account
+//
+
+msg = netapi32.NetUserDel(null, uName);
+if (msg != Win32Error.SUCCESS)
+    return;
+
+Console.WriteLine("[[... ALL OK ... ]]");
+Console.Read();
+ */
+
+ // ------ Token
+
+/*
+private static void Main()
+{
+    // net user tst 123 /add                    || create user
+    // net localgroup administrators tst /add   || add admin rights
+    // net user tst /delete                     || remove user
+
+    string
+        userName = "tst",
+        password = "123";
+
+    SafeTokenHandle
+        logonToken = new SafeTokenHandle(0),
+        logonTokenDuplicate = new SafeTokenHandle(0);
+
+    try
+    {
+        if (!advapi32.LogonUser(
+            userName, null, password,
+            LogonType.INTERACTIVE,
+            LogonProvider.DEFAULT,
+            out logonToken))
+            throw new Win32Exception(
+                Marshal.GetLastWin32Error());
+
+        if (!advapi32.DuplicateToken(
+            logonToken,
+            SecurityImpersonationLevel.SecurityImpersonation,
+            out logonTokenDuplicate))
+            throw new Win32Exception(
+                Marshal.GetLastWin32Error());
+
+        advapi32.ImpersonateLoggedOnUser(logonTokenDuplicate);
+        Print();
+
+        advapi32.RevertToSelf();
+        Print();
+    }
+    finally
+    {
+        logonToken.Release();
+        logonTokenDuplicate.Release();
+    }
+
+    //Console.Clear();
+    Console.WriteLine();
+    Console.WriteLine("[- All OK -]");
+    Console.Read();
+}
+static unsafe void Print()
+{
+    uint returnLength;
+	var tokenHandle = SafeTokenHandle.Current;
+	var tokenInformation = (TOKEN_INFORMATION*)0;
+
+	advapi32.GetTokenInformation(
+		tokenHandle,
+		TOKEN_INFORMATION_CLASS.TokenUser,
+		tokenInformation,
+		returnLength,
+		out returnLength);
+
+	tokenInformation = (TOKEN_INFORMATION*)kernel32.GlobalAlloc(GlobalMemoryFlags.Fixed, returnLength);
+	advapi32.GetTokenInformation(
+		tokenHandle,
+		TOKEN_INFORMATION_CLASS.TokenUser,
+		tokenInformation,
+		returnLength,
+		out returnLength);
+
+	Console.WriteLine(
+		"Account :: {1}\nSid :: {0}\n",
+		tokenInformation->TokenUser.User.Sid,
+		tokenInformation->TokenUser.User.Sid.Account);
+
+	tokenHandle.Release();
+	kernel32.GlobalFree((IntPtr) tokenInformation);
+}
+ */
+
+// ------ Network
+
+/*
+// <<< Sample >>>>
+// How to use ?????
+            
+using (var wifi = new Wifi())
+{
+	wifi.OnChange += (ref WLAN_NOTIFICATION_DATA data) =>
+		Console.WriteLine(data.NotificationAcmCode);
+
+	var selectedInterface = wifi.EnumInterfaces().First();
+
+	wifi.RenameProfile(selectedInterface, "avital100", "???");
+	wifi.DeleteProfile(selectedInterface, "???");
+
+	wifi.Disconnect(selectedInterface);
+	wifi.Connect(selectedInterface, "avital100", "0526311200");
+
+	foreach (var profile in wifi.EnumProfiles(selectedInterface))
+	{
+		//Console.WriteLine(profile);
+		//Console.WriteLine(wifi.ReceiveXml(selectedInterface, profile));
+	}
+}
+ */
+
+// ------ Hardware
+
+// USB GUID
+//var guid = new Guid("a5dcbf10-6530-11d2-901f-00c04fb951ed");
+
+// Network GUID
+var guid = new Guid("ad498944-762f-11d0-8dcb-00c04fc3358c");
+
+// All Guid
+//foreach (var guid in DeviceManager.EnumGuid())
+
+{
+    // Pring Guid
+    //Console.WriteLine("Guid  :: {0}", guid);
+    //Console.WriteLine();
+
+    using (var manager = new DeviceManager())
+    //using (var manager = new DeviceManager(guid))
+    {
+        // to make it work in x64 system.
+        // [like my windows version]
+        // must change the build to x64
+
+        //manager.InstallDriver(
+        //    "c:\\windows\\inf\\netloop.inf", 
+        //    "*msloop");
+
+        Array.ForEach(
+            manager.EnumDevices().ToArray(),
+            deviceInfo => 
+        {
+            // to make it work in x64 system.
+            // [like my windows version]
+            // must change the build to x64
+
+            //manager.ControlDevice(deviceInfo, DICS.DISABLE);
+            //manager.ControlDevice(deviceInfo, DICS.ENABLE);
+            //manager.ControlDevice(deviceInfo, DICS.START);
+
+            var description = manager.GetClassDescription(deviceInfo);
+            Console.WriteLine("Description :: {0}", description);
+
+            var instanceID = manager.GetDeviceInstanceID(deviceInfo);
+            Console.WriteLine("Instance ID :: {0}", instanceID);
+
+            var deviceClass = manager.GetDeviceProperty(deviceInfo, SPDRP.CLASS);
+            Console.WriteLine("Class :: {0}", deviceClass == null ?
+                "???" : Encoding.ASCII.GetString(deviceClass));
+
+            var friendlyName = manager.GetDeviceProperty(deviceInfo, SPDRP.FRIENDLYNAME);
+            Console.WriteLine("Friendly Name :: {0}", friendlyName == null ?
+                "???" : Encoding.ASCII.GetString(friendlyName));
+
+            var hardwareId = manager.GetDeviceProperty(deviceInfo, SPDRP.HARDWAREID);
+            Console.WriteLine("Hardware Id :: {0}", hardwareId == null ?
+                "???" : Encoding.ASCII.GetString(hardwareId));
+
+            var deviceDescription = manager.GetDeviceProperty(deviceInfo, SPDRP.DEVICEDESC);
+            Console.WriteLine("Device Description :: {0}", deviceDescription == null ?
+                "???" : Encoding.ASCII.GetString(deviceDescription));
+
+            if (deviceDescription != null &&
+                Encoding.ASCII.GetString(deviceDescription) == "Microsoft Loopback Adapter\0")
+            {
+                manager.RemoveDevice(deviceInfo);
+                return;
+            }
+
+            var driverInfo = manager.GetDriverInfo(deviceInfo);
+            if (driverInfo.IsValid)
+            {
+                Console.WriteLine("Description :: {0}", driverInfo.InfoData.Description);
+                Console.WriteLine("Inf File :: {0}", driverInfo.DetailData.InfFileName);
+            }
+
+            var deviceInterfaceData =
+                manager.EnumDeviceInterface(deviceInfo).First();
+            var devicePath = 
+                manager.GetDeviceInterfaceDetails(deviceInfo, deviceInterfaceData);
+            Console.WriteLine("DevicePath :: {0}",
+                devicePath.DevicePath);
+
+            Console.WriteLine("\r\n");
+        });
+    }
+}
+
+// ------ Resource
+
+/*
+var result = string.Empty;
+uint len = 0, size = 0, handle = 0;
+var file = @"C:\windows\write.exe";
+IntPtr proc = IntPtr.Zero, buffer = IntPtr.Zero;
+var langId = LANGID.MAKELANGID(CultureInfo.CurrentCulture);
+
+// --------------------------
+// --- VS_VERSIONINFO TEST --
+// --------------------------
+
+//
+// ---- VS_VERSIONINFO from GetFileVersionInfo ----
+//
+
+if ((size = version.GetFileVersionInfoSize(file, out handle)) == 0)
+    throw new Win32Exception(Marshal.GetLastWin32Error());
+var versionInfo = Marshal.AllocHGlobal((int)size);
+if (version.GetFileVersionInfo(file, handle, size, versionInfo) == false)
+    throw new Win32Exception(Marshal.GetLastWin32Error());
+
+var info = (RESOURCEHEADER*)versionInfo;
+
+if (info->IsVersionInfo > 0)
+{
+    var fixedInfo = (VS_FIXEDFILEINFO*)ALIGN.ALIGN_CLUSPROP(versionInfo + info->IsVersionInfo);
+    Console.WriteLine(fixedInfo->dwFileOS);
+}
+
+//
+// ---- VS_VERSIONINFO from FindResource ----
+//
+
+proc = kernel32.LoadLibraryEx(file, IntPtr.Zero,
+    LoadLibraryFlags.DONT_RESOLVE_DLL_REFERENCES | LoadLibraryFlags.LOAD_LIBRARY_AS_DATAFILE);
+var hRes = kernel32.FindResource(proc, "#1", Win32ResourceType.RT_VERSION);
+var hGlobal = kernel32.LoadResource(proc, hRes);
+var lpRes = kernel32.LockResource(hGlobal);
+var hSize = kernel32.SizeofResource(proc, hRes);
+var sInfo = (RESOURCEHEADER*)lpRes;
+
+if (sInfo->IsVersionInfo > 0)
+{
+    var fixedInfo = (VS_FIXEDFILEINFO*)ALIGN.ALIGN_CLUSPROP(versionInfo + info->IsVersionInfo);
+    Console.WriteLine(fixedInfo->dwFileOS);
+}
+kernel32.FreeLibrary(proc);
+
+// ---------------
+// --- GET TEST --
+// ---------------
+
+{
+    // Idea :: Msdn
+    // http://msdn.microsoft.com/en-us/library/windows/desktop/ms646981(v=vs.85).aspx
+
+    version.VerQueryValue(versionInfo, @"\VarFileInfo\Translation", ref buffer, out len);
+    var pageCodePtr = (LANGANDCODEPAGE*)buffer;
+    var pageCode = new LANGANDCODEPAGE()
+    {
+        wCodePage = pageCodePtr->wCodePage,
+        wLanguage = pageCodePtr->wLanguage
+    };
+    var companyName = @"\StringFileInfo\" + (pageCode.wLanguage).ToString("X4") + (pageCode.wCodePage).ToString("X4") + @"\CompanyName";
+
+    version.VerQueryValue(versionInfo, companyName, ref buffer, out len);
+    Console.WriteLine(buffer.ToUnicodeStr());
+
+    // Idea :: BlueC0der [from hackforums]
+    // http://www.hackforums.net/member.php?action=profile&uid=1026660
+
+    var sPtr = versionInfo;
+    var sTxt = string.Empty;
+    var sRes = (RESOURCEHEADER*)sPtr;
+
+    if (sRes->IsVersionInfo > 0)
+    {
+        sPtr = ALIGN.ALIGN_CLUSPROP(sPtr + info->IsVersionInfo);
+        var sFixed = (VS_FIXEDFILEINFO*)sPtr;
+        Console.WriteLine(sFixed->dwFileOS);
+
+        // Next Header
+        sPtr = ALIGN.ALIGN_CLUSPROP(sPtr + VS_FIXEDFILEINFO.Size);
+        sRes = (RESOURCEHEADER*)sPtr;
+    }
+
+
+    if (sRes->IsStringFileInfo > 0)
+    {
+        sPtr = ALIGN.ALIGN_CLUSPROP(sPtr + sRes->IsStringFileInfo);
+        sRes = (RESOURCEHEADER*)sPtr;
+        sTxt = Marshal.PtrToStringUni(sPtr + RESOURCEHEADER.Size);
+
+        var from = ALIGN.ALIGN_CLUSPROP(sPtr + RESOURCEHEADER.Size + (sTxt.Length + 1) * 2);
+        var to = sPtr + sRes->wLength;
+
+        while ((int)from < (int)to)
+        {
+            var header = (RESOURCEHEADER*)from;
+
+            var pKey = from + RESOURCEHEADER.Size;
+            var key = Marshal.PtrToStringUni(pKey);
+
+            var pValue = ALIGN.ALIGN_CLUSPROP(pKey + (key.Length + 1) * 2);
+            var value = ((header->wValueLength > 0)
+                ? Marshal.PtrToStringUni(pValue, header->wValueLength)
+                : null);
+
+            Console.WriteLine(key);
+            Console.WriteLine(value);
+            Console.WriteLine();
+
+            from = ALIGN.ALIGN_CLUSPROP(from + header->wLength);
+        }
+
+        // Next Header
+        sPtr = ALIGN.ALIGN_CLUSPROP(sPtr + sRes->wLength);
+        sRes = (RESOURCEHEADER*)sPtr;
+    }
+
+    if (sRes->IsVarFileInfo > 0)
+    {
+        sPtr = ALIGN.ALIGN_CLUSPROP(sPtr + sRes->IsVarFileInfo);
+        sRes = (RESOURCEHEADER*)sPtr;
+        sTxt = Marshal.PtrToStringUni(sPtr + RESOURCEHEADER.Size);
+
+        var from = ALIGN.ALIGN_CLUSPROP(sPtr + RESOURCEHEADER.Size + (sTxt.Length + 1) * 2);
+        var to = sPtr + sRes->wLength;
+
+        LANGANDCODEPAGE* Page;
+        while ((int)from < (int)to)
+        {
+            Page = (LANGANDCODEPAGE*)from;
+            from += Marshal.SizeOf(typeof(LANGANDCODEPAGE));
+            Console.WriteLine("Code Page, {0}", Page->wCodePage);
+            Console.WriteLine("Language Page, {0}", Page->wLanguage);
+            Console.WriteLine();
+        }
+
+        // Next Header
+        sPtr = ALIGN.ALIGN_CLUSPROP(sPtr + sRes->wLength);
+        sRes = (RESOURCEHEADER*)sPtr;
+    }
+
+    Console.WriteLine();
+}
+
+{
+    proc = kernel32.LoadLibraryEx(file, IntPtr.Zero,
+        LoadLibraryFlags.DONT_RESOLVE_DLL_REFERENCES | LoadLibraryFlags.LOAD_LIBRARY_AS_DATAFILE);
+    hRes = kernel32.FindResource(proc, "someKey", Win32ResourceType.RT_RCDATA);
+    hGlobal = kernel32.LoadResource(proc, hRes);
+    lpRes = kernel32.LockResource(hGlobal);
+
+    var sizeOfRes = kernel32.SizeofResource(proc, hRes);
+    if (sizeOfRes > 0)
+    {
+        //var someData = new byte[(int)sizeOfRes];
+        //Marshal.Copy(lpRes, someData, 0, (int)sizeOfRes);
+        //Console.WriteLine(Encoding.ASCII.GetString(someData));
+
+        Console.WriteLine(
+            lpRes.ToAnsiStr(sizeOfRes));
+    }
+    kernel32.FreeLibrary(proc);
+}
+
+// ---------------
+// --- SET TEST --
+// ---------------
+
+{
+    // result.Length + '\0' == len
+    var replaceWith = new string('g', ((int)len - 1));
+    var strData = Encoding.ASCII.GetBytes(replaceWith);
+    kernel32.ZeroMemory(buffer, (uint)strData.Length);
+    Marshal.Copy(strData, 0, buffer, strData.Length);
+    buffer = IntPtr.Zero;
+
+    IntPtr hUpdate;
+    if ((hUpdate = kernel32.BeginUpdateResource(file, false)) != IntPtr.Zero &&
+        kernel32.UpdateResource(hUpdate, Win32ResourceType.RT_VERSION, "#1", (short)langId, versionInfo, size) &&
+        kernel32.EndUpdateResource(hUpdate, false))
+    {
+        Console.WriteLine("Good ...");
+    }
+    else
+    {
+        throw new Win32Exception(
+            Marshal.GetLastWin32Error());
+    }
+}
+
+{
+    IntPtr hUpdate;
+    var someData = Encoding.ASCII.GetBytes("accdefghijklmnop");
+    if ((hUpdate = kernel32.BeginUpdateResource(file, false)) != IntPtr.Zero &&
+        kernel32.UpdateResource(hUpdate, Win32ResourceType.RT_RCDATA, "someKey", (short)LANGID.MAKELANGID(CultureInfo.CurrentCulture), someData, (uint)someData.Length) &&
+        kernel32.EndUpdateResource(hUpdate, false))
+    {
+        Console.WriteLine("Good ...");
+    }
+    else
+    {
+        throw new Win32Exception(
+            Marshal.GetLastWin32Error());
+    }
+}
+
+//
+// --------
+//
+
+// break
+Console.ReadLine();
+ */
